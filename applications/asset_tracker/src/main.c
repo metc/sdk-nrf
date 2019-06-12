@@ -12,7 +12,11 @@
 #include <console.h>
 #include <nrf_cloud.h>
 #include <dk_buttons_and_leds.h>
+
+#if defined(CONFIG_REBOOT)
 #include <misc/reboot.h>
+#endif
+
 #if defined(CONFIG_BSD_LIBRARY)
 #include <net/bsdlib.h>
 #include <lte_lc.h>
@@ -230,13 +234,14 @@ void error_handler(enum error_type err_type, int err_code)
 		/* Turn off and shutdown modem */
 		int err = lte_lc_power_off();
 		__ASSERT(err == 0, "lte_lc_power_off failed: %d", err);
+		(void)err;
 #endif
 #if defined(CONFIG_BSD_LIBRARY)
 		bsdlib_shutdown();
 #endif
 	}
 
-#if !defined(CONFIG_DEBUG)
+#if defined(CONFIG_REBOOT)
 	sys_reboot(SYS_REBOOT_COLD);
 #else
 	switch (err_type) {
@@ -714,7 +719,7 @@ static void cloud_init(void)
 	};
 
 	int err = nrf_cloud_init(&param);
-
+	(void)err;
 	__ASSERT(err == 0, "nRF Cloud library could not be initialized.");
 }
 

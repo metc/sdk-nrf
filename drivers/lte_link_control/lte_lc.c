@@ -64,6 +64,8 @@ static const char cgdcont[] = "AT+CGDCONT="CONFIG_LTE_PDP_CONTEXT;
 static const char legacy_pco[] = "AT%XEPCO=0";
 #endif
 
+static const char modem_trace[] = "AT%XMODEMTRACE=1,2";
+
 void at_handler(char *response)
 {
 	LOG_DBG("recv: %s", response);
@@ -78,13 +80,22 @@ void at_handler(char *response)
 
 static int w_lte_lc_init_and_connect(struct device *unused)
 {
+	/* Enable Modem traces */
+	LOG_INF("Enable Modem trace 1,2\n");
+	if (at_cmd_write(modem_trace, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
+		return -EIO;
+	}
+
 #if defined(CONFIG_LTE_EDRX_REQ)
 	/* Request configured eDRX settings to save power */
 	if (at_cmd_write(edrx_req, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
 #endif
 	if (at_cmd_write(subscribe, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
 
@@ -92,23 +103,30 @@ static int w_lte_lc_init_and_connect(struct device *unused)
 	/* Set LTE band lock (volatile setting).
 	 * Has to be done every time before activating the modem.
 	 */
+	LOG_INF("Lock LTE bands 3, 4, 13 and 20\n");
 	if (at_cmd_write(lock_bands, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error");
 		return -EIO;
 	}
 #endif
 #if defined(CONFIG_LTE_LEGACY_PCO_MODE)
 	if (at_cmd_write(legacy_pco, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
-	LOG_INF("Using legacy LTE PCO mode...");
+	LOG_INF("Using legacy LTE PCO mode...\n");
 #endif
 #if defined(CONFIG_LTE_PDP_CMD)
 	if (at_cmd_write(cgdcont, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
-	LOG_INF("PDP Context: %s", cgdcont);
+	LOG_INF("PDP Context: %s\n", cgdcont);
 #endif
+
+	LOG_DBG("Network mode: %s\n", network_mode);
 	if (at_cmd_write(network_mode, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
 
@@ -117,6 +135,7 @@ static int w_lte_lc_init_and_connect(struct device *unused)
 	at_cmd_set_notification_handler(at_handler);
 
 	if (at_cmd_write(normal, NULL, 0, NULL) != 0) {
+		LOG_ERR("Error\n");
 		return -EIO;
 	}
 
